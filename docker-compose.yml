@@ -1,0 +1,73 @@
+services:
+  # MongoDB - Database for Orion Context Broker
+  mongodb:
+    image: mongo:4.4
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    networks:
+      - fiware
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 10s
+      retries: 3
+
+  # Orion Context Broker
+  orion:
+    image: fiware/orion:3.0.0
+    container_name: orion
+    depends_on:
+      - mongodb
+    networks:
+      - fiware
+    ports:
+      - "1026:1026"
+    command: -dbhost mongodb -logLevel DEBUG
+    healthcheck:
+      test: curl --fail -s http://localhost:1026/version || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Frontend Application
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    networks:
+      - fiware
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - REACT_APP_ORION_API=/orion
+    command: npm start
+
+  # Nginx - Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    networks:
+      - fiware
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - frontend
+      - orion
+
+networks:
+  fiware:
+    driver: bridge
+
+volumes:
+  mongodb_data: 

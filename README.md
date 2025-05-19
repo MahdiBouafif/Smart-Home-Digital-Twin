@@ -2,6 +2,8 @@
 
 A real-time monitoring dashboard for Smart Home environments built on the FIWARE platform.
 
+![Dashboard Overview](example/dashboard.png)
+
 ## Overview
 
 This project implements a Smart Home Digital Twin that displays real-time sensor data from different rooms in a home. The system provides a visual interface showing temperature, humidity, CO2 levels, occupancy status, and other environmental metrics.
@@ -50,7 +52,7 @@ cd ..
 Start all services using Docker Compose:
 
 ```bash
-docker-compose up -d
+docker-compose up --build -d
 ```
 
 This command will start:
@@ -99,6 +101,16 @@ The frontend provides a user interface to visualize room data:
 - **Room views**: Detailed sensor data for each room
 - **Analytics**: Real-time metrics of sensor readings
 
+#### Dashboard View
+![Dashboard View](example/dashboard.png)
+
+#### Room Detail View
+![Room Detail](example/Room.png)
+
+#### Analytics Views
+![Analytics 1](example/Analytics1.png)
+![Analytics 2](example/Analytics2.png)
+
 ### Orion Context Broker
 
 Manages and stores the contextual information of the smart home, including:
@@ -118,6 +130,43 @@ The application exposes the following endpoints through Nginx:
 - `/orion/v2/entities`: Access to all entities in the system
 - `/orion/v2/entities/urn:ngsi-ld:Room:{RoomId}`: Access to specific room data
 
+### Data Model Examples
+
+#### Room Entity Structure
+```json
+{
+  "id": "urn:ngsi-ld:Room:LivingRoom",
+  "type": "Room",
+  "name": { 
+    "value": "Living Room", 
+    "type": "Text" 
+  },
+  "temperature": { 
+    "value": 21.5, 
+    "type": "Number" 
+  },
+  "humidity": { 
+    "value": 45, 
+    "type": "Number" 
+  },
+  "illuminance": { 
+    "value": 1000, 
+    "type": "Number" 
+  },
+  "occupancy": { 
+    "value": true, 
+    "type": "Boolean" 
+  },
+  "co2Level": { 
+    "value": 450, 
+    "type": "Number" 
+  },
+  "noiseLevel": { 
+    "value": 35, 
+    "type": "Number" 
+  }
+}
+
 ## File Structure
 
 ```
@@ -128,6 +177,37 @@ The application exposes the following endpoints through Nginx:
 └── scripts/                   # Helper scripts
     ├── provision.js           # Initial data provisioning script
     └── simulate-data.js       # Data simulation script
+```
+
+### API Response Examples
+
+#### GET /orion/v2/entities
+Returns all room entities in the system:
+```json
+[
+  {
+    "id": "urn:ngsi-ld:Room:LivingRoom",
+    "type": "Room",
+    "name": { "value": "Living Room", "type": "Text" },
+    "temperature": { "value": 21.5, "type": "Number" },
+    "humidity": { "value": 45, "type": "Number" },
+    "illuminance": { "value": 1000, "type": "Number" },
+    "occupancy": { "value": true, "type": "Boolean" },
+    "co2Level": { "value": 450, "type": "Number" },
+    "noiseLevel": { "value": 35, "type": "Number" }
+  },
+  {
+    "id": "urn:ngsi-ld:Room:Kitchen",
+    "type": "Room",
+    "name": { "value": "Kitchen", "type": "Text" },
+    "temperature": { "value": 23.0, "type": "Number" },
+    "humidity": { "value": 50, "type": "Number" },
+    "illuminance": { "value": 800, "type": "Number" },
+    "occupancy": { "value": false, "type": "Boolean" },
+    "co2Level": { "value": 500, "type": "Number" },
+    "noiseLevel": { "value": 45, "type": "Number" }
+  }
+]
 ```
 
 ## Troubleshooting
@@ -187,6 +267,67 @@ node simulate-data.js
 The application uses Docker volumes for data persistence:
 - `mongodb_data`: Stores MongoDB data
 
+## Docker Compose Configuration
+
+The project's Docker Compose file defines the following services:
+
+```json
+{
+  "services": {
+    "mongodb": {
+      "image": "mongo:4.4",
+      "container_name": "mongodb",
+      "ports": ["27017:27017"],
+      "networks": ["fiware"],
+      "volumes": ["mongodb_data:/data/db"]
+    },
+    "orion": {
+      "image": "fiware/orion:3.0.0",
+      "container_name": "orion",
+      "depends_on": ["mongodb"],
+      "networks": ["fiware"],
+      "ports": ["1026:1026"],
+      "command": "-dbhost mongodb -logLevel DEBUG"
+    },
+    "frontend": {
+      "build": {
+        "context": "./frontend",
+        "dockerfile": "Dockerfile"
+      },
+      "container_name": "frontend",
+      "networks": ["fiware"],
+      "ports": ["3000:3000"],
+      "volumes": [
+        "./frontend:/app",
+        "/app/node_modules"
+      ],
+      "environment": [
+        "NODE_ENV=development",
+        "PORT=3000",
+        "REACT_APP_ORION_API=/orion"
+      ],
+      "command": "npm start"
+    },
+    "nginx": {
+      "image": "nginx:alpine",
+      "container_name": "nginx",
+      "networks": ["fiware"],
+      "ports": ["80:80"],
+      "volumes": ["./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro"],
+      "depends_on": ["frontend", "orion"]
+    }
+  },
+  "networks": {
+    "fiware": {
+      "driver": "bridge"
+    }
+  },
+  "volumes": {
+    "mongodb_data": {}
+  }
+}
+```
+
 ---
 
-For any additional issues or questions, please open an issue in the repository. 
+For any additional issues or questions, please open an issue in the repository.

@@ -1,0 +1,367 @@
+---
+project:
+  name: "Smart Home Digital Twin"
+  description: "A comprehensive IoT monitoring and visualization platform that creates real-time digital representations of smart home environments using FIWARE technology stack"
+  type: "Digital Twin Solution"
+  repository: "https://github.com/yourusername/smart-home-digital-twin"
+  
+overview:
+  context: |
+    The Smart Home Digital Twin project addresses the growing need for intelligent home automation and monitoring systems. 
+    In the context of modern IoT ecosystems, this solution provides real-time environmental monitoring, 
+    digital twin technology, FIWARE integration, and scalable architecture.
+  
+  purpose:
+    - "Real-time Environmental Monitoring: Track temperature, humidity, CO2 levels, noise, and occupancy across multiple rooms"
+    - "Digital Twin Technology: Create virtual representations of physical spaces with live data synchronization"
+    - "FIWARE Integration: Leverage industry-standard Context Broker for IoT data management"
+    - "Scalable Architecture: Containerized microservices for easy deployment and scaling"
+
+architecture:
+  layers:
+    data_layer:
+      - "MongoDB for persistence"
+      - "Orion Context Broker for real-time data management"
+    business_layer:
+      - "FIWARE Orion handling entity operations and data context"
+    presentation_layer:
+      - "React application with real-time updates and interactive dashboards"
+    infrastructure_layer:
+      - "Docker containers orchestrated via Docker Compose"
+
+components:
+  orion_context_broker:
+    description: "FIWARE component managing contextual information and entity lifecycle"
+    image: "fiware/orion:3.0.0"
+    port: 1026
+  
+  mongodb:
+    description: "NoSQL database storing entity data and historical information"
+    image: "mongo:4.4"
+    port: 27017
+  
+  react_frontend:
+    description: "Modern web application providing intuitive data visualization"
+    build_context: "./frontend"
+    port: 3000
+  
+  nginx:
+    description: "Reverse proxy handling routing and load balancing"
+    image: "nginx:alpine"
+    port: 80
+  
+  data_simulation:
+    description: "Node.js scripts generating realistic sensor data"
+    scripts:
+      - "provision.js: Initial data setup"
+      - "simulate-data.js: Real-time data simulation"
+
+data_models:
+  room_entity:
+    id: "urn:ngsi-ld:Room:LivingRoom"
+    type: "Room"
+    attributes:
+      name:
+        value: "Living Room"
+        type: "Text"
+      temperature:
+        value: 21.5
+        type: "Number"
+        unit: "Celsius"
+      humidity:
+        value: 45
+        type: "Number"
+        unit: "%"
+      illuminance:
+        value: 1000
+        type: "Number"
+        unit: "lux"
+      occupancy:
+        value: true
+        type: "Boolean"
+      co2Level:
+        value: 450
+        type: "Number"
+        unit: "ppm"
+      noiseLevel:
+        value: 35
+        type: "Number"
+        unit: "dB"
+
+api_endpoints:
+  base_url: "http://localhost/orion/v2"
+  endpoints:
+    get_all_entities:
+      path: "/entities"
+      method: "GET"
+      description: "Access to all entities in the system"
+    get_specific_room:
+      path: "/entities/urn:ngsi-ld:Room:{RoomId}"
+      method: "GET"
+      description: "Access to specific room data"
+
+folder_structure:
+  root:
+    - "docker-compose.yml: Docker Compose orchestration configuration"
+    - ".gitignore: Git ignore rules for clean repository"
+    - "README.md: Project documentation"
+    - "package.json: Root package configuration"
+  
+  frontend:
+    - "Dockerfile: Frontend container configuration"
+    - "package.json: Frontend dependencies"
+    - "public/: Static assets and HTML template"
+    - "src/: React source code"
+  
+  nginx:
+    - "default.conf: Main Nginx configuration"
+    - "nginx.conf: Additional Nginx settings"
+  
+  scripts:
+    - "package.json: Scripts dependencies"
+    - "provision.js: Initial data setup"
+    - "simulate-data.js: Real-time data simulation"
+    - "create-subscriptions.js: FIWARE subscriptions setup"
+  
+  example:
+    - "dashboard.png: Main dashboard screenshot"
+    - "Room.png: Room view screenshot"
+    - "Analytics1.png: Analytics view 1"
+    - "Analytics2.png: Analytics view 2"
+
+features:
+  real_time_visualization:
+    - "Live updates of environmental sensors across multiple rooms"
+    - "Interactive dashboard with responsive design"
+    - "3D visualization of smart home layout"
+  
+  fiware_architecture:
+    - "Industry-standard Context Broker for IoT data management"
+    - "NGSI-v2 API compliance for interoperability"
+    - "Scalable entity management system"
+  
+  multi_room_monitoring:
+    - "Temperature, humidity, and air quality tracking"
+    - "Occupancy detection and noise level monitoring"
+    - "Illuminance measurement for lighting optimization"
+  
+  analytics_insights:
+    - "Historical data analysis and trends"
+    - "Real-time charts and visualizations"
+    - "Customizable dashboards for different user roles"
+  
+  containerized_deployment:
+    - "Full Docker containerization for easy deployment"
+    - "Microservices architecture for scalability"
+    - "Production-ready configuration with Nginx reverse proxy"
+
+prerequisites:
+  required:
+    docker: "version 19.03.0+"
+    docker_compose: "version 1.27.0+"
+    nodejs: "version 14.0.0+"
+    npm: "version 6.0.0+"
+  optional:
+    git: "for cloning repository"
+
+installation:
+  steps:
+    1: "Clone the Repository"
+    2: "Install Dependencies"
+    3: "Docker Compose Configuration"
+  
+  commands:
+    clone:
+      - "git clone https://github.com/yourusername/smart-home-digital-twin.git"
+      - "cd smart-home-digital-twin"
+    
+    dependencies:
+      - "cd scripts"
+      - "npm install"
+      - "cd .."
+
+docker_compose:
+  services:
+    mongodb:
+      image: "mongo:4.4"
+      container_name: "mongodb"
+      ports: ["27017:27017"]
+      networks: ["fiware"]
+      volumes: ["mongodb_data:/data/db"]
+      healthcheck:
+        test: "echo 'db.runCommand(\"ping\").ok' | mongosh localhost:27017/test --quiet"
+        interval: "10s"
+        timeout: "10s"
+        retries: 3
+    
+    orion:
+      image: "fiware/orion:3.0.0"
+      container_name: "orion"
+      depends_on: ["mongodb"]
+      networks: ["fiware"]
+      ports: ["1026:1026"]
+      command: "-dbhost mongodb -logLevel DEBUG"
+      healthcheck:
+        test: "curl --fail -s http://localhost:1026/version || exit 1"
+        interval: "30s"
+        timeout: "10s"
+        retries: 3
+    
+    frontend:
+      build:
+        context: "./frontend"
+        dockerfile: "Dockerfile"
+      container_name: "frontend"
+      networks: ["fiware"]
+      ports: ["3000:3000"]
+      volumes:
+        - "./frontend:/app"
+        - "/app/node_modules"
+      environment:
+        - "NODE_ENV=development"
+        - "PORT=3000"
+        - "REACT_APP_ORION_API=/orion"
+      command: "npm start"
+    
+    nginx:
+      image: "nginx:alpine"
+      container_name: "nginx"
+      networks: ["fiware"]
+      ports: ["80:80"]
+      volumes: ["./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro"]
+      depends_on: ["frontend", "orion"]
+  
+  networks:
+    fiware:
+      driver: "bridge"
+  
+  volumes:
+    mongodb_data: {}
+
+launch_application:
+  steps:
+    1:
+      name: "Build and Start All Services"
+      command: "docker-compose up --build -d"
+      description: "Builds frontend Docker image, pulls required images, creates network and volumes, starts all containers"
+    
+    2:
+      name: "Verify Services are Running"
+      command: "docker-compose ps"
+      description: "Check that all containers are running correctly"
+    
+    3:
+      name: "Provision Initial Data"
+      commands:
+        - "cd scripts"
+        - "node provision.js"
+        - "cd .."
+      description: "Load the initial room data into the system"
+    
+    4:
+      name: "Start Real-time Data Simulation"
+      commands:
+        - "cd scripts"
+        - "node simulate-data.js"
+      description: "Run data simulation script to generate real-time sensor updates"
+    
+    5:
+      name: "Access the Dashboard"
+      url: "http://localhost"
+      description: "Open web browser and navigate to dashboard"
+
+results_screenshots:
+  main_dashboard:
+    file: "example/dashboard.png"
+    description: "Main dashboard provides overview of all rooms with current environmental conditions"
+    features:
+      - "Real-time temperature, humidity, and CO2 levels for each room"
+      - "Occupancy status indicators"
+      - "Quick navigation to detailed room views"
+      - "Responsive design for different screen sizes"
+  
+  room_detail:
+    file: "example/Room.png"
+    description: "Detailed sensor information for specific rooms with historical data trends"
+    features:
+      - "Comprehensive sensor readings with units"
+      - "Real-time updates every few seconds"
+      - "Historical data visualization"
+      - "Environmental condition status indicators"
+  
+  analytics_view_1:
+    file: "example/Analytics1.png"
+    description: "Advanced analytics showing data trends and patterns across the smart home"
+    features:
+      - "Multi-room comparison charts"
+      - "Historical trend analysis"
+      - "Environmental correlation insights"
+      - "Data export capabilities"
+  
+  analytics_view_2:
+    file: "example/Analytics2.png"
+    description: "Additional analytics dashboard with comprehensive data visualization"
+    features:
+      - "Multi-room comparison charts"
+      - "Historical trend analysis"
+      - "Environmental correlation insights"
+      - "Data export capabilities"
+
+troubleshooting:
+  connection_issues:
+    check_containers:
+      command: "docker-compose ps"
+      description: "All containers should show as 'Up'"
+    
+    check_nginx_logs:
+      command: "docker-compose logs nginx"
+      description: "Check for any errors in Nginx service"
+    
+    check_orion_logs:
+      command: "docker-compose logs orion"
+      description: "Check Orion Context Broker logs"
+  
+  data_not_displaying:
+    verify_provisioning:
+      command: "node scripts/provision.js"
+      description: "Verify provisioning script ran successfully"
+    
+    ensure_simulation:
+      command: "node scripts/simulate-data.js"
+      description: "Ensure data simulation is running"
+    
+    check_browser_console:
+      description: "Check browser console for frontend errors"
+  
+  restart_system:
+    commands:
+      - "docker-compose down"
+      - "docker-compose up -d"
+      - "cd scripts"
+      - "node provision.js"
+      - "node simulate-data.js"
+
+resources:
+  documentation:
+    - name: "FIWARE Orion Context Broker Documentation"
+      url: "https://fiware-orion.readthedocs.io/"
+    - name: "NGSI-v2 API Documentation"
+      url: "https://fiware.github.io/specifications/ngsiv2/stable/"
+    - name: "Docker Documentation"
+      url: "https://docs.docker.com/guides/"
+    - name: "React Documentation"
+      url: "https://reactjs.org/docs/"
+    - name: "MongoDB Documentation"
+      url: "https://docs.mongodb.com/"
+    - name: "Nginx Documentation"
+      url: "https://nginx.org/en/docs/"
+    - name: "Node.js Documentation"
+      url: "https://nodejs.org/en/docs/"
+
+contributing:
+  process:
+    1: "Fork this repository"
+    2: "Create a new branch: git checkout -b feature/<your-feature-name>"
+    3: "Implement your feature or fix"
+    4: "Commit with a clear, descriptive message"
+    5: "Push to your fork and open a Pull Request"
